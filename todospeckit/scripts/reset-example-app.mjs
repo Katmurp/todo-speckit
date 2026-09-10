@@ -106,6 +106,17 @@ Removes product implementation; restores empty shells + reference stubs.
 `);
 }
 
+/**
+ * npm treats --yes and --dry-run as its own config flags and often does not
+ * forward them to the script (common on Windows). They arrive as npm_config_*.
+ */
+function isNpmConfigTrue(name) {
+  const value = process.env[`npm_config_${name}`];
+  if (value === undefined) return false;
+  const normalized = String(value).trim().toLowerCase();
+  return normalized !== "false" && normalized !== "0" && normalized !== "no";
+}
+
 function parseArgs(argv) {
   const options = { yes: false, dryRun: false, help: false };
   for (const arg of argv.slice(2)) {
@@ -114,6 +125,8 @@ function parseArgs(argv) {
     else if (arg === "--dry-run") options.dryRun = true;
     else throw new Error(`Unknown option: ${arg}`);
   }
+  if (isNpmConfigTrue("yes")) options.yes = true;
+  if (isNpmConfigTrue("dry_run")) options.dryRun = true;
   return options;
 }
 
@@ -192,7 +205,7 @@ function main() {
 
   if (!options.yes && !options.dryRun) {
     console.error(
-      "Refusing to run without --yes (destructive). Try:\n  npm run reset:example -- --yes\n  npm run reset:example -- --dry-run",
+      "Refusing to run without --yes (destructive). Try:\n  node scripts/reset-example-app.mjs --yes\n  node scripts/reset-example-app.mjs --dry-run\n  npm run reset:example -- --yes",
     );
     process.exit(1);
   }

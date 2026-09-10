@@ -445,5 +445,5 @@ git checkout dev && git merge feature/1-user-auth && git push origin dev
 | Agent invents behavior not in the spec | Refuse; update `features/` first or drop the code                                     |
 | Wrong stack / API shape                | Cite `@.cursor/rules/` (e.g. `api-conventions`, `ui-style-system`)                    |
 | Tests weakened to “pass”               | Require real Gherkin coverage; no `expect(true).toBe(true)`                           |
-| `reset:example` refused                | Pass `--yes`; use `--dry-run` first                                                   |
+| `reset:example` refused                | npm may swallow `--yes` / `--dry-run` on Windows. Run `node scripts/reset-example-app.mjs --yes` (or `--dry-run`) |
 | Confused with starter zip              | `starter:zip` = **new** product (no Todo specs). This assignment uses `reset:example` |
