@@ -1,12 +1,50 @@
+import request from "supertest";
+import app from "../server.js";
 import db from "../app/models/index.js";
 
-/** Sync schema for tests (no models registered in the starter shell). */
 export const syncTestDatabase = async () => {
-  await db.sequelize.sync({ force: true });
+  try {
+    await db.sequelize.query("SET FOREIGN_KEY_CHECKS = 0");
+    await db.sequelize.sync({ force: true });
+  } catch (error) {
+    const detail = error.parent?.sqlMessage || error.message;
+    throw new Error(`Test database sync failed: ${detail}`);
+  } finally {
+    try {
+      await db.sequelize.query("SET FOREIGN_KEY_CHECKS = 1");
+    } catch {
+      // ignore if the connection already failed
+    }
+  }
 };
 
-/**
- * Add feature-specific helpers here as you implement auth/lists/etc.
- * Example after Feature 1:
- *   export const registerUser = async (overrides = {}) => { … }
- */
+export const resetTestDatabase = async () => {
+  if (db.todo) {
+    await db.todo.destroy({ where: {} });
+  }
+  if (db.list) {
+    await db.list.destroy({ where: {} });
+  }
+  await db.session.destroy({ where: {} });
+  await db.user.destroy({ where: {} });
+};
+
+export const registerUser = async (overrides = {}) => {
+  const payload = {
+    fName: "Test",
+    lName: "User",
+    email: "test@example.com",
+    username: "testuser",
+    password: "password123",
+    ...overrides,
+  };
+
+  const response = await request(app).post("/todo/register").send(payload);
+
+  return {
+    response,
+    user: response.body,
+    token: response.body.token,
+    authHeader: { Authorization: `Bearer ${response.body.token}` },
+  };
+};
