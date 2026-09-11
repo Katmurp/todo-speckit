@@ -31,12 +31,31 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Password at least 8 characters | Register form + API | Feature 1 |
 | Duplicate username **"Username is already taken."**; duplicate email **"Email is already registered."** | Register API `400` | Feature 1 |
 | Invalid login **"Invalid username or password."** (same message for unknown user or wrong password) | Login API `401` | Feature 1 |
+| List name required (trimmed); max 100 characters | Create/rename API + Dashboard dialog | Feature 2 |
+| Todo title required (trimmed); max 255 characters | Create/update todo API + items dialogs | Feature 3 |
+
+## Ownership
+
+| Rule | Enforcement | Introduced |
+|------|-------------|------------|
+| `GET /todo/lists` returns only `userId = req.user.id`, sorted A–Z by name | `list.controller` `findAll` | Feature 2 |
+| Create `userId` from `req.user.id` only — ignore body `userId` | `list.controller` `create` | Feature 2 |
+| Cross-user list access → **404**, never 403 | `getAccessibleListOrNull` | Feature 2; ADR-0002 |
+| Todo create only when parent list is owned; `userId`/`listId` from server context | `todo.controller` `create` | Feature 3 |
+| Todo read/update/delete scoped to `userId = req.user.id` | `getAccessibleTodoOrNull` | Feature 3; ADR-0002 |
+| Cross-user todo or parent-list access → **404**, never 403 | `getAccessibleListOrNull` / `getAccessibleTodoOrNull` | Feature 3; ADR-0002 |
+| Todos ordered incomplete first, then `createdAt` ascending | `todo.controller` `findAllByList`; Dashboard sort | Feature 3 |
+| Deleting a list deletes its todos | List `hasMany` Todo `onDelete: CASCADE` | Feature 3 |
 
 ## UI
 
 | Rule | Enforcement | Introduced |
 |------|-------------|------------|
-| Login and register are full-screen (no MenuBar) | `App.vue` has no MenuBar | Feature 1 |
-| Protected home shows a welcome using the user's first name and a **Sign out** button | `Home.vue` | Feature 1 |
+| Login and register are full-screen (no MenuBar) | `App.vue` hides MenuBar on those routes | Feature 1; Feature 2 chrome |
+| MenuBar shows signed-in name and **Sign out** | `MenuBar.vue` | Feature 2 |
+| Dashboard heading **My Lists**; empty copy **"No lists yet. Create your first list."** | `Dashboard.vue` | Feature 2 |
+| List rows have an Items icon that opens a list-items dialog; add/edit/delete todos use nested dialogs (no sidebar) | `Dashboard.vue` | Feature 3 |
+| Items dialog empty copy **"No todos in this list yet."**; completed titles struck through | `Dashboard.vue` | Feature 3 |
+| **+ Add Item** is only inside the items dialog | `Dashboard.vue` | Feature 3 |
 | Unauthenticated visit to home → login; signed-in visit to login/register → home | `router.beforeEach` | Feature 1 |
 | Session stored in `localStorage` under key `user` | `Utils.setStore("user", …)` | Feature 1 |
