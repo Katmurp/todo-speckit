@@ -20,7 +20,7 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Session TTL is **24 hours**; reuse a non-expired session for the same user | JWT `expiresIn: 86400` + Session `expirationDate` | Feature 1 |
 | New users get role `worker` | User model default | Feature 1 |
 | Authenticated requests resolve `req.user.id` from the session token | `authenticate` middleware | Feature 1 |
-| Logout revokes the server session, then clears `localStorage` key `user` | `POST /todo/logout`; `authServices.logoutUser` | Feature 1 |
+| Logout revokes the server session, then clears `localStorage` key `user` | `POST /todo/logout`; `authServices.logoutUser` from profile dropdown | Feature 1; Feature 4 entry point |
 | Missing/expired token → `401`; frontend clears `user` and redirects to login | `authenticate`; axios interceptor | Feature 1 |
 
 ## Validation
@@ -33,6 +33,8 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Invalid login **"Invalid username or password."** (same message for unknown user or wrong password) | Login API `401` | Feature 1 |
 | List name required (trimmed); max 100 characters | Create/rename API + Dashboard dialog | Feature 2 |
 | Todo title required (trimmed); max 255 characters | Create/update todo API + items dialogs | Feature 3 |
+| Profile required fields trimmed; optional password min 8 characters when provided | `user.controller` `update` + Edit Profile dialog | Feature 4 |
+| Edit Profile uses shared `emailRules` | `MenuBar.vue` | Feature 4 |
 
 ## Ownership
 
@@ -46,13 +48,15 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Cross-user todo or parent-list access → **404**, never 403 | `getAccessibleListOrNull` / `getAccessibleTodoOrNull` | Feature 3; ADR-0002 |
 | Todos ordered incomplete first, then `createdAt` ascending | `todo.controller` `findAllByList`; Dashboard sort | Feature 3 |
 | Deleting a list deletes its todos | List `hasMany` Todo `onDelete: CASCADE` | Feature 3 |
+| Profile GET/PUT only when `:id = req.user.id`; cross-user → **404** | `getAccessibleUserOrNull` | Feature 4; ADR-0002 |
+| After profile save, refresh `localStorage` `user` and dispatch `user-logged-in` | `MenuBar.vue` | Feature 4 |
 
 ## UI
 
 | Rule | Enforcement | Introduced |
 |------|-------------|------------|
 | Login and register are full-screen (no MenuBar) | `App.vue` hides MenuBar on those routes | Feature 1; Feature 2 chrome |
-| MenuBar shows signed-in name and **Sign out** | `MenuBar.vue` | Feature 2 |
+| MenuBar shows a user icon that opens a profile dropdown (full name, username, email); **Log out** lives in the dropdown only (no standalone **Sign out**) | `MenuBar.vue` | Feature 4 |
 | Dashboard heading **My Lists**; empty copy **"No lists yet. Create your first list."** | `Dashboard.vue` | Feature 2 |
 | List rows have an Items icon that opens a list-items dialog; add/edit/delete todos use nested dialogs (no sidebar) | `Dashboard.vue` | Feature 3 |
 | Items dialog empty copy **"No todos in this list yet."**; completed titles struck through | `Dashboard.vue` | Feature 3 |

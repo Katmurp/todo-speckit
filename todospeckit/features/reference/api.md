@@ -1,6 +1,6 @@
 # API Reference
 
-**Status:** Features 1–3 — auth, list CRUD, and todo items on `/todo`.
+**Status:** Features 1–4 — auth, lists, todos, and profile on `/todo`.
 
 API mount path is `/todo` (see `backend/server.js`). Authenticated routes send `Authorization: Bearer <token>`.
 
@@ -19,6 +19,8 @@ API mount path is `/todo` (see `backend/server.js`). Authenticated routes send `
 | `POST` | `/todo/lists/:listId/todos` | Yes | Add a todo to an owned list |
 | `PUT` | `/todo/todos/:id` | Yes | Update an owned todo (title and/or `completed`) |
 | `DELETE` | `/todo/todos/:id` | Yes | Delete an owned todo |
+| `GET` | `/todo/users/:id` | Yes | Fetch the authenticated user's profile |
+| `PUT` | `/todo/users/:id` | Yes | Update the authenticated user's profile |
 
 ## Auth success payload
 
@@ -75,6 +77,25 @@ Create body: `{ "title": "Buy milk" }`. `userId` and `listId` are taken from the
 
 `GET /todo/lists/:listId/todos` returns an array of those objects, incomplete first, then by `createdAt` ascending.
 
+## Profile payload
+
+GET/PUT `200`:
+
+```json
+{
+  "id": 42,
+  "fName": "Jane",
+  "lName": "Doe",
+  "email": "jane@example.com",
+  "username": "jdoe",
+  "role": "worker",
+  "createdAt": "2026-07-02T12:00:00.000Z",
+  "updatedAt": "2026-07-02T12:05:00.000Z"
+}
+```
+
+Update body includes `fName`, `lName`, `email`, and `username`. `password` is optional; omit it to leave the current password unchanged. `role` is read-only. Password hashes are never returned. Self-access only: `:id` must equal `req.user.id`.
+
 ## Errors
 
 Errors: `{ "message": "..." }`.
@@ -94,6 +115,7 @@ Errors: `{ "message": "..." }`.
 | Empty todo title | `400` | `"Todo title is required."` |
 | Todo title longer than 255 characters | `400` | `"Todo title must be 255 characters or fewer."` |
 | Todo not found or not owned | `404` | `"Todo with id=<id> not found."` |
+| User not found or not self | `404` | `"User with id=<id> not found."` |
 
 ## Conventions
 
@@ -109,3 +131,4 @@ Errors: `{ "message": "..." }`.
 | Session Bearer auth | Feature 1 |
 | List CRUD | Feature 2 |
 | Todo items nested under lists | Feature 3 |
+| Profile GET/PUT | Feature 4 |

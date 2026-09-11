@@ -32,3 +32,4 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Register / login / logout, sessions, `users` table | Feature 1 |
 | List CRUD, dashboard lists view, MenuBar sign-out | Feature 2 |
 | Todo items via list-row dialogs, `todos` table | Feature 3 |
+| Profile API + MenuBar profile dropdown / Log out | Feature 4 |

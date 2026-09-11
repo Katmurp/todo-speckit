@@ -1,6 +1,6 @@
 # Data Model Reference
 
-**Status:** Features 1–3 — `users`, `sessions`, `lists`, and `todos` tables.
+**Status:** Features 1–4 — `users`, `sessions`, `lists`, and `todos` tables.
 
 ## Tables
 
@@ -9,12 +9,12 @@
 | Field | Type | Rules |
 |-------|------|-------|
 | `id` | INTEGER PK | Auto-increment |
-| `fName` | STRING | Required |
-| `lName` | STRING | Required |
-| `email` | STRING | Required, unique |
-| `username` | STRING(100) | Required, unique; stored lowercase |
-| `password` | STRING(255) | Required; bcrypt hash only; excluded from default query scope |
-| `role` | STRING(20) | Default `worker` |
+| `fName` | STRING | Required; editable via `PUT /todo/users/:id` |
+| `lName` | STRING | Required; editable via `PUT /todo/users/:id` |
+| `email` | STRING | Required, unique; editable via `PUT /todo/users/:id` |
+| `username` | STRING(100) | Required, unique; stored lowercase; editable via `PUT /todo/users/:id` |
+| `password` | STRING(255) | Required; bcrypt hash only; excluded from default query scope; optional on profile update |
+| `role` | STRING(20) | Default `worker`; read-only on profile API |
 
 ### `sessions`
 
@@ -64,5 +64,6 @@
 | Area | Introduced |
 |------|------------|
 | `users` / `sessions` | Feature 1 |
+| Profile field editability (`PUT /todo/users/:id`) | Feature 4 |
 | `lists` | Feature 2 |
 | `todos` | Feature 3 |
