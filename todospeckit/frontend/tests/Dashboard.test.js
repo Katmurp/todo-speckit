@@ -8,6 +8,7 @@ import { flushPromises } from "@vue/test-utils";
 import Dashboard from "../src/views/Dashboard.vue";
 import listServices from "../src/services/listServices.js";
 import todoServices from "../src/services/todoServices.js";
+import { formatDueDate } from "../src/config/validation.js";
 import { mountWithPlugins } from "./testUtils.js";
 
 vi.mock("../src/services/listServices.js", () => ({
@@ -411,6 +412,7 @@ describe("Feature 3 — Dashboard items dialogs", () => {
 
       expect(todoServices.updateTodo).toHaveBeenCalledWith(30, {
         title: "Buy oat milk",
+        dueDate: null,
       });
       expect(pageText()).toContain("Buy oat milk");
     });
@@ -427,6 +429,185 @@ describe("Feature 3 — Dashboard items dialogs", () => {
 
       expect(todoServices.deleteTodo).toHaveBeenCalledWith(30);
       expect(pageText()).not.toContain("Buy milk");
+    });
+  });
+});
+
+describe("Feature 5 — Dashboard due dates", () => {
+  const mountedWrappers = [];
+
+  const milkTodo = {
+    id: 30,
+    listId: 3,
+    title: "Buy milk",
+    completed: false,
+    dueDate: null,
+    userId: 1,
+    createdAt: "2026-01-01T00:00:00.000Z",
+  };
+
+  function localYesterday() {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() - 1);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    listServices.getLists.mockResolvedValue({ data: [workList, personalList, groceriesList] });
+    todoServices.getTodos.mockResolvedValue({ data: [] });
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
+    document.body.innerHTML = "";
+  });
+
+  async function mountFeature5Dashboard() {
+    const wrapper = await mountDashboard();
+    mountedWrappers.push(wrapper);
+    return wrapper;
+  }
+
+  function pageText() {
+    return document.body.textContent ?? "";
+  }
+
+  async function clickBodyButton(text) {
+    const button = [...document.body.querySelectorAll("button")].find(
+      (btn) => btn.textContent?.trim() === text
+    );
+
+    expect(button).toBeDefined();
+    button.click();
+    await flushPromises();
+  }
+
+  async function clickLastBodyButton(text) {
+    const buttons = [...document.body.querySelectorAll("button")].filter(
+      (btn) => btn.textContent?.trim() === text
+    );
+
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons[buttons.length - 1].click();
+    await flushPromises();
+  }
+
+  async function clickBodyAriaLabel(label) {
+    const button = document.body.querySelector(`[aria-label="${label}"]`);
+    expect(button).not.toBeNull();
+    button.click();
+    await flushPromises();
+  }
+
+  function getField(wrapper, label) {
+    const fields = wrapper
+      .findAllComponents({ name: "VTextField" })
+      .filter((field) => field.props("label") === label);
+
+    return fields[fields.length - 1];
+  }
+
+  async function openItemsDialog(wrapper, listName) {
+    await wrapper.get(`[aria-label="View items for ${listName}"]`).trigger("click");
+    await flushPromises();
+  }
+
+  describe("US-5.1 — Set a due date when creating a todo", () => {
+    it("User adds a todo with a due date", async () => {
+      const created = { ...milkTodo, dueDate: "2026-07-15" };
+      todoServices.createTodo.mockResolvedValue({ data: created });
+
+      const wrapper = await mountFeature5Dashboard();
+      await openItemsDialog(wrapper, "Groceries");
+      await clickBodyButton("+ Add Item");
+
+      await getField(wrapper, "Todo title").setValue("Buy milk");
+      await getField(wrapper, "Due date").setValue("2026-07-15");
+      await clickBodyButton("Add");
+
+      expect(todoServices.createTodo).toHaveBeenCalledWith(3, "Buy milk", "2026-07-15");
+      expect(pageText()).toContain("Buy milk");
+      expect(pageText()).toContain(formatDueDate("2026-07-15"));
+    });
+  });
+
+  describe("US-5.3 — Edit or clear a due date", () => {
+    it("User sets a due date when editing a todo", async () => {
+      todoServices.getTodos.mockResolvedValue({ data: [milkTodo] });
+      todoServices.updateTodo.mockResolvedValue({
+        data: { ...milkTodo, dueDate: "2026-07-20" },
+      });
+
+      const wrapper = await mountFeature5Dashboard();
+      await openItemsDialog(wrapper, "Groceries");
+      await clickBodyAriaLabel("Edit todo");
+
+      await getField(wrapper, "Due date").setValue("2026-07-20");
+      await clickLastBodyButton("Save");
+
+      expect(todoServices.updateTodo).toHaveBeenCalledWith(30, {
+        title: "Buy milk",
+        dueDate: "2026-07-20",
+      });
+      expect(pageText()).toContain(formatDueDate("2026-07-20"));
+    });
+
+    it("User clears a due date when editing a todo", async () => {
+      const datedMilk = { ...milkTodo, dueDate: "2026-07-20" };
+      todoServices.getTodos.mockResolvedValue({ data: [datedMilk] });
+      todoServices.updateTodo.mockResolvedValue({
+        data: { ...milkTodo, dueDate: null },
+      });
+
+      const wrapper = await mountFeature5Dashboard();
+      await openItemsDialog(wrapper, "Groceries");
+      await clickBodyAriaLabel("Edit todo");
+
+      await getField(wrapper, "Due date").setValue("");
+      await clickLastBodyButton("Save");
+
+      expect(todoServices.updateTodo).toHaveBeenCalledWith(30, {
+        title: "Buy milk",
+        dueDate: null,
+      });
+      expect(pageText()).not.toContain(formatDueDate("2026-07-20"));
+    });
+  });
+
+  describe("US-5.4 — Spot overdue todos", () => {
+    it("Incomplete todo past due date is styled as overdue", async () => {
+      const yesterday = localYesterday();
+      todoServices.getTodos.mockResolvedValue({
+        data: [{ ...milkTodo, dueDate: yesterday, completed: false }],
+      });
+
+      const wrapper = await mountFeature5Dashboard();
+      await openItemsDialog(wrapper, "Groceries");
+
+      const dueDateEl = document.body.querySelector('[data-testid="todo-due-date"]');
+      expect(dueDateEl).not.toBeNull();
+      expect(dueDateEl.classList.contains("text-error")).toBe(true);
+      expect(pageText()).toContain(formatDueDate(yesterday));
+    });
+
+    it("Completed todo past due date is not styled as overdue", async () => {
+      const yesterday = localYesterday();
+      todoServices.getTodos.mockResolvedValue({
+        data: [{ ...milkTodo, dueDate: yesterday, completed: true }],
+      });
+
+      const wrapper = await mountFeature5Dashboard();
+      await openItemsDialog(wrapper, "Groceries");
+
+      const dueDateEl = document.body.querySelector('[data-testid="todo-due-date"]');
+      expect(dueDateEl).not.toBeNull();
+      expect(dueDateEl.classList.contains("text-error")).toBe(false);
+      expect(pageText()).toContain(formatDueDate(yesterday));
     });
   });
 });

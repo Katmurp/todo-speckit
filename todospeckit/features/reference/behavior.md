@@ -33,6 +33,7 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Invalid login **"Invalid username or password."** (same message for unknown user or wrong password) | Login API `401` | Feature 1 |
 | List name required (trimmed); max 100 characters | Create/rename API + Dashboard dialog | Feature 2 |
 | Todo title required (trimmed); max 255 characters | Create/update todo API + items dialogs | Feature 3 |
+| Due date `YYYY-MM-DD` or empty/null; invalid → **"Due date must be a valid date in YYYY-MM-DD format."** | Todo API + optional date fields | Feature 5 |
 | Profile required fields trimmed; optional password min 8 characters when provided | `user.controller` `update` + Edit Profile dialog | Feature 4 |
 | Edit Profile uses shared `emailRules` | `MenuBar.vue` | Feature 4 |
 
@@ -48,6 +49,7 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | Cross-user todo or parent-list access → **404**, never 403 | `getAccessibleListOrNull` / `getAccessibleTodoOrNull` | Feature 3; ADR-0002 |
 | Todos ordered incomplete first, then `createdAt` ascending | `todo.controller` `findAllByList`; Dashboard sort | Feature 3 |
 | Deleting a list deletes its todos | List `hasMany` Todo `onDelete: CASCADE` | Feature 3 |
+| `dueDate` optional; `null` means none; omit on PUT leaves existing; `null` on PUT clears | `todo.controller` create/update | Feature 5 |
 | Profile GET/PUT only when `:id = req.user.id`; cross-user → **404** | `getAccessibleUserOrNull` | Feature 4; ADR-0002 |
 | After profile save, refresh `localStorage` `user` and dispatch `user-logged-in` | `MenuBar.vue` | Feature 4 |
 
@@ -61,5 +63,6 @@ They do **not** authorize new scope — implement only from `features/feature-*.
 | List rows have an Items icon that opens a list-items dialog; add/edit/delete todos use nested dialogs (no sidebar) | `Dashboard.vue` | Feature 3 |
 | Items dialog empty copy **"No todos in this list yet."**; completed titles struck through | `Dashboard.vue` | Feature 3 |
 | **+ Add Item** is only inside the items dialog | `Dashboard.vue` | Feature 3 |
+| Todo rows show formatted due date when set; incomplete past-due dates use error color | `Dashboard.vue`; `isTodoOverdue` | Feature 5 |
 | Unauthenticated visit to home → login; signed-in visit to login/register → home | `router.beforeEach` | Feature 1 |
 | Session stored in `localStorage` under key `user` | `Utils.setStore("user", …)` | Feature 1 |

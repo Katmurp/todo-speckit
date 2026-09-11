@@ -1,6 +1,6 @@
 # API Reference
 
-**Status:** Features 1–4 — auth, lists, todos, and profile on `/todo`.
+**Status:** Features 1–5 — auth, lists, todos with due dates, and profile on `/todo`.
 
 API mount path is `/todo` (see `backend/server.js`). Authenticated routes send `Authorization: Bearer <token>`.
 
@@ -17,7 +17,7 @@ API mount path is `/todo` (see `backend/server.js`). Authenticated routes send `
 | `DELETE` | `/todo/lists/:listId` | Yes | Delete an owned list |
 | `GET` | `/todo/lists/:listId/todos` | Yes | Fetch todos in an owned list |
 | `POST` | `/todo/lists/:listId/todos` | Yes | Add a todo to an owned list |
-| `PUT` | `/todo/todos/:id` | Yes | Update an owned todo (title and/or `completed`) |
+| `PUT` | `/todo/todos/:id` | Yes | Update an owned todo (title, `completed`, and/or `dueDate`) |
 | `DELETE` | `/todo/todos/:id` | Yes | Delete an owned todo |
 | `GET` | `/todo/users/:id` | Yes | Fetch the authenticated user's profile |
 | `PUT` | `/todo/users/:id` | Yes | Update the authenticated user's profile |
@@ -67,15 +67,18 @@ Create `201` / update `200`:
   "listId": 1,
   "title": "Buy milk",
   "completed": false,
+  "dueDate": "2026-07-15",
   "userId": 42,
   "createdAt": "2026-07-02T12:05:00.000Z",
   "updatedAt": "2026-07-02T12:05:00.000Z"
 }
 ```
 
-Create body: `{ "title": "Buy milk" }`. `userId` and `listId` are taken from the authenticated user and `:listId` — client `userId` in the body is ignored.
+Create body: `{ "title": "Buy milk", "dueDate": "2026-07-15" }`. `dueDate` is optional (`YYYY-MM-DD` or omit/`null`). `userId` and `listId` are taken from the authenticated user and `:listId` — client `userId` in the body is ignored.
 
-`GET /todo/lists/:listId/todos` returns an array of those objects, incomplete first, then by `createdAt` ascending.
+On `PUT`, omit `dueDate` to leave it unchanged; send `dueDate: null` to clear it.
+
+`GET /todo/lists/:listId/todos` returns an array of those objects, incomplete first, then by `createdAt` ascending. `dueDate` is `null` when not set.
 
 ## Profile payload
 
@@ -115,6 +118,7 @@ Errors: `{ "message": "..." }`.
 | Empty todo title | `400` | `"Todo title is required."` |
 | Todo title longer than 255 characters | `400` | `"Todo title must be 255 characters or fewer."` |
 | Todo not found or not owned | `404` | `"Todo with id=<id> not found."` |
+| Invalid todo due date | `400` | `"Due date must be a valid date in YYYY-MM-DD format."` |
 | User not found or not self | `404` | `"User with id=<id> not found."` |
 
 ## Conventions
@@ -131,4 +135,5 @@ Errors: `{ "message": "..." }`.
 | Session Bearer auth | Feature 1 |
 | List CRUD | Feature 2 |
 | Todo items nested under lists | Feature 3 |
+| Todo `dueDate` | Feature 5 |
 | Profile GET/PUT | Feature 4 |

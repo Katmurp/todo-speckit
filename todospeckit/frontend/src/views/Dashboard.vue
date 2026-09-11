@@ -2,6 +2,12 @@
 import { onMounted, ref } from "vue";
 import listServices from "../services/listServices.js";
 import todoServices from "../services/todoServices.js";
+import {
+  formatDueDate,
+  isTodoOverdue,
+  optionalDueDateRules,
+  toDateInputValue,
+} from "../config/validation.js";
 
 const lists = ref([]);
 const listsLoading = ref(false);
@@ -31,7 +37,9 @@ const todosError = ref("");
 const todoToEdit = ref(null);
 const todoToDelete = ref(null);
 const newTodoTitle = ref("");
+const newTodoDueDate = ref("");
 const editTodoTitle = ref("");
+const editTodoDueDate = ref("");
 
 const createLoading = ref(false);
 const renameLoading = ref(false);
@@ -221,12 +229,14 @@ const closeItemsDialog = () => {
 const openAddTodoDialog = () => {
   todoDialogError.value = "";
   newTodoTitle.value = "";
+  newTodoDueDate.value = "";
   addTodoDialogOpen.value = true;
 };
 
 const closeAddTodoDialog = () => {
   addTodoDialogOpen.value = false;
   newTodoTitle.value = "";
+  newTodoDueDate.value = "";
   todoDialogError.value = "";
 };
 
@@ -241,7 +251,10 @@ const handleCreateTodo = async () => {
   addTodoLoading.value = true;
 
   try {
-    const response = await todoServices.createTodo(itemsList.value.id, newTodoTitle.value.trim());
+    const dueDate = newTodoDueDate.value || undefined;
+    const response = dueDate
+      ? await todoServices.createTodo(itemsList.value.id, newTodoTitle.value.trim(), dueDate)
+      : await todoServices.createTodo(itemsList.value.id, newTodoTitle.value.trim());
     todos.value = sortTodos([...todos.value, response.data]);
     closeAddTodoDialog();
   } catch (error) {
@@ -266,6 +279,7 @@ const openEditTodoDialog = (todo) => {
   todoDialogError.value = "";
   todoToEdit.value = todo;
   editTodoTitle.value = todo.title;
+  editTodoDueDate.value = toDateInputValue(todo.dueDate);
   editTodoDialogOpen.value = true;
 };
 
@@ -273,6 +287,7 @@ const closeEditTodoDialog = () => {
   editTodoDialogOpen.value = false;
   todoToEdit.value = null;
   editTodoTitle.value = "";
+  editTodoDueDate.value = "";
   todoDialogError.value = "";
 };
 
@@ -289,6 +304,7 @@ const handleEditTodo = async () => {
   try {
     const response = await todoServices.updateTodo(todoToEdit.value.id, {
       title: editTodoTitle.value.trim(),
+      dueDate: editTodoDueDate.value || null,
     });
     todos.value = sortTodos(
       todos.value.map((item) => (item.id === response.data.id ? response.data : item))
@@ -512,6 +528,14 @@ onMounted(() => {
               <v-list-item-title :class="todo.completed ? 'text-decoration-line-through text-medium-emphasis' : ''">
                 {{ todo.title }}
               </v-list-item-title>
+              <v-list-item-subtitle v-if="todo.dueDate">
+                <span
+                  data-testid="todo-due-date"
+                  :class="isTodoOverdue(todo) ? 'text-error' : 'text-medium-emphasis'"
+                >
+                  {{ formatDueDate(todo.dueDate) }}
+                </span>
+              </v-list-item-subtitle>
               <template #append>
                 <v-btn
                   icon="mdi-pencil"
@@ -549,6 +573,13 @@ onMounted(() => {
               density="comfortable"
               :rules="todoTitleRules"
             />
+            <v-text-field
+              v-model="newTodoDueDate"
+              label="Due date"
+              type="date"
+              density="comfortable"
+              :rules="optionalDueDateRules"
+            />
             <v-alert v-if="todoDialogError" type="error" class="mt-2">
               {{ todoDialogError }}
             </v-alert>
@@ -580,6 +611,13 @@ onMounted(() => {
               label="Todo title"
               density="comfortable"
               :rules="todoTitleRules"
+            />
+            <v-text-field
+              v-model="editTodoDueDate"
+              label="Due date"
+              type="date"
+              density="comfortable"
+              :rules="optionalDueDateRules"
             />
             <v-alert v-if="todoDialogError" type="error" class="mt-2">
               {{ todoDialogError }}

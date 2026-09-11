@@ -1,6 +1,6 @@
 # Data Model Reference
 
-**Status:** Features 1–4 — `users`, `sessions`, `lists`, and `todos` tables.
+**Status:** Features 1–5 — `users`, `sessions`, `lists`, and `todos` (with optional `dueDate`).
 
 ## Tables
 
@@ -44,6 +44,7 @@
 | `listId` | INTEGER FK | Required; references `lists.id`; cascade on list delete |
 | `title` | STRING(255) | Required; max 255 chars |
 | `completed` | BOOLEAN | Default `false` |
+| `dueDate` | DATEONLY | Nullable; optional on create/update; `YYYY-MM-DD` |
 | `userId` | INTEGER FK | Required; references `users.id`; set from `req.user.id` on create |
 | `createdAt` | DATE | Sequelize timestamps |
 | `updatedAt` | DATE | Sequelize timestamps |
@@ -67,3 +68,4 @@
 | Profile field editability (`PUT /todo/users/:id`) | Feature 4 |
 | `lists` | Feature 2 |
 | `todos` | Feature 3 |
+| `todos.dueDate` | Feature 5 |
